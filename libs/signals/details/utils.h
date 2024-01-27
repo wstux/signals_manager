@@ -26,6 +26,7 @@
 #define _SIGNALS_MANAGER_SIGNALS_UTILS_H
 
 #include <csignal>
+#include <chrono>
 
 #include "signals/types.h"
 
@@ -34,7 +35,6 @@ namespace signals {
 namespace details {
 
 using sig_action_fn_t = void (*)(sig_num_t, sig_info_t*, void*);
-//using sig_set_t = struct ::sigset_t;
 using sig_set_t = ::sigset_t;
 
 bool block_signal(sig_num_t num);
@@ -50,6 +50,10 @@ bool unblock_signal(sig_num_t sig);
 bool unblock_sigset(const sig_set_t& set);
 
 bool unregister_signal_handler(sig_num_t sig);
+
+bool wait_signal(const sig_set_t& set);
+
+bool wait_signal(const sig_set_t& set, const std::chrono::milliseconds& msec);
 
 } // namespace details
 } // namespace signals
