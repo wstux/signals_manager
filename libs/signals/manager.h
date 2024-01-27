@@ -59,6 +59,8 @@ private:
     using handlers_map_t = std::unordered_map<sig_num_t, sig_handler_fn_t>;
 
 private:
+    void erase(sig_num_t sig);
+
     static void on_signal_fn(sig_num_t /*sig_num*/, sig_info_t* sig_info, void*)
     {
         std::unique_lock<std::mutex> lock(m_impl.queue_mutex);

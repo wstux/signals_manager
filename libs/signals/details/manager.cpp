@@ -44,12 +44,29 @@ void manager::clear()
     }
 }
 
+void manager::erase(sig_num_t sig)
+{
+    handlers_map_t::iterator it = m_impl.handlers.find(sig);
+    if (it == m_impl.handlers.cend()) {
+        return;
+    }
+
+    m_impl.handlers.erase(it);
+    details::unregister_signal_handler(sig);
+    details::unblock_signal(sig);
+}
+
 void manager::process_signals()
 {
 }
 
-void manager::remove_handler(sig_num_t)
+void manager::remove_handler(sig_num_t sig)
 {
+    std::unique_lock<std::mutex> lock(m_impl.handlers_mutex, std::defer_lock);
+    if (! lock.try_lock()) {
+        return;
+    }
+    erase(sig);
 }
 
 bool manager::reset_handler(sig_num_t sig, handler_fn_t func)
@@ -57,9 +74,27 @@ bool manager::reset_handler(sig_num_t sig, handler_fn_t func)
     return reset_handler(sig, [func](sig_num_t, const sig_info_t&) -> void { func(); });
 }
 
-bool manager::reset_handler(sig_num_t, sig_handler_fn_t)
+bool manager::reset_handler(sig_num_t sig, sig_handler_fn_t func)
 {
-    return false;
+    std::unique_lock<std::mutex> lock(m_impl.handlers_mutex, std::defer_lock);
+    if (! lock.try_lock()) {
+        return false;
+    }
+
+    std::pair<handlers_map_t::iterator, bool> rc = m_impl.handlers.emplace(sig, func);
+    if (! rc.second) {
+        rc.first->second = func;
+        return true;
+    }
+    if (! details::block_signal(sig)) {
+        erase(sig);
+        return false;
+    }
+    if (! details::register_signal_handler(sig, &on_signal_fn)) {
+        erase(sig);
+        return false;
+    }
+    return true;
 }
 
 bool manager::set_handler(sig_num_t sig, handler_fn_t func)
@@ -67,9 +102,26 @@ bool manager::set_handler(sig_num_t sig, handler_fn_t func)
     return set_handler(sig, [func](sig_num_t, const sig_info_t&) -> void { func(); });
 }
 
-bool manager::set_handler(sig_num_t, sig_handler_fn_t)
+bool manager::set_handler(sig_num_t sig, sig_handler_fn_t func)
 {
-    return false;
+    std::unique_lock<std::mutex> lock(m_impl.handlers_mutex, std::defer_lock);
+    if (! lock.try_lock()) {
+        return false;
+    }
+
+    std::pair<handlers_map_t::iterator, bool> rc = m_impl.handlers.emplace(sig, func);
+    if (! rc.second) {
+        return false;
+    }
+    if (! details::block_signal(sig)) {
+        erase(sig);
+        return false;
+    }
+    if (! details::register_signal_handler(sig, &on_signal_fn)) {
+        erase(sig);
+        return false;
+    }
+    return true;
 }
 
 void manager::stop_process_signals()
