@@ -37,7 +37,7 @@ namespace signals {
 class manager final
 {
 public:
-    ~manager();
+    ~manager() { clear(); }
 
     void clear();
 

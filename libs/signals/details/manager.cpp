@@ -23,19 +23,25 @@
  */
 
 #include "signals/manager.h"
+#include "signals/details/utils.h"
 
 namespace wstux {
 namespace signals {
 
 manager::impl manager::m_impl;
 
-manager::~manager()
-{
-    clear();
-}
-
 void manager::clear()
 {
+    for (const handlers_map_t::value_type& handler : m_impl.handlers) {
+        details::unregister_signal_handler(handler.first);
+        details::unblock_signal(handler.first);
+    }
+
+    m_impl.handlers.clear();
+
+    while (! m_impl.sig_queue.empty()) {
+        m_impl.sig_queue.pop();
+    }
 }
 
 void manager::process_signals()
