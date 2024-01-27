@@ -22,22 +22,53 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SIGNALS_MANAGER_SIGNALS_TYPES_H
-#define _SIGNALS_MANAGER_SIGNALS_TYPES_H
-
-#include <csignal>
-#include <functional>
+#include "signals/manager.h"
 
 namespace wstux {
 namespace signals {
 
-using handler_fn_t = std::function<void()>;
-using sig_num_t = int;
-using sig_info_t = ::siginfo_t;
-using sig_handler_fn_t = std::function<void(sig_num_t, const sig_info_t&)>;
+manager::impl manager::m_impl;
+
+manager::~manager()
+{
+    clear();
+}
+
+void manager::clear()
+{
+}
+
+void manager::process_signals()
+{
+}
+
+void manager::remove_handler(sig_num_t)
+{
+}
+
+bool manager::reset_handler(sig_num_t sig, handler_fn_t func)
+{
+    return reset_handler(sig, [func](sig_num_t, const sig_info_t&) -> void { func(); });
+}
+
+bool manager::reset_handler(sig_num_t, sig_handler_fn_t)
+{
+    return false;
+}
+
+bool manager::set_handler(sig_num_t sig, handler_fn_t func)
+{
+    return set_handler(sig, [func](sig_num_t, const sig_info_t&) -> void { func(); });
+}
+
+bool manager::set_handler(sig_num_t, sig_handler_fn_t)
+{
+    return false;
+}
+
+void manager::stop_process_signals()
+{}
 
 } // namespace signals
 } // namespace wstux
-
-#endif /* _SIGNALS_MANAGER_SIGNALS_TYPES_H */
 

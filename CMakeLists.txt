@@ -22,5 +22,5 @@ include(${COMMON_MAIN_CMAKE} PUBLIC)
 # Include source code
 ################################################################################
 
-#add_subdirectory()
+add_subdirectory(libs/signals)
 

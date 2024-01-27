@@ -22,22 +22,65 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SIGNALS_MANAGER_SIGNALS_TYPES_H
-#define _SIGNALS_MANAGER_SIGNALS_TYPES_H
+#ifndef _SIGNALS_MANAGER_SIGNALS_MANAGER_H
+#define _SIGNALS_MANAGER_SIGNALS_MANAGER_H
 
-#include <csignal>
-#include <functional>
+#include <mutex>
+#include <queue>
+#include <unordered_map>
+
+#include "signals/types.h"
 
 namespace wstux {
 namespace signals {
 
-using handler_fn_t = std::function<void()>;
-using sig_num_t = int;
-using sig_info_t = ::siginfo_t;
-using sig_handler_fn_t = std::function<void(sig_num_t, const sig_info_t&)>;
+class manager final
+{
+public:
+    ~manager();
+
+    void clear();
+
+    void process_signals();
+
+    void remove_handler(sig_num_t sig);
+
+    bool reset_handler(sig_num_t sig, handler_fn_t func);
+
+    bool reset_handler(sig_num_t sig, sig_handler_fn_t func);
+
+    bool set_handler(sig_num_t sig, handler_fn_t func);
+
+    bool set_handler(sig_num_t sig, sig_handler_fn_t func);
+
+    void stop_process_signals();
+
+private:
+    using handlers_map_t = std::unordered_map<sig_num_t, sig_handler_fn_t>;
+
+private:
+    static void on_signal_fn(sig_num_t /*sig_num*/, sig_info_t* sig_info, void*)
+    {
+        std::unique_lock<std::mutex> lock(m_impl.queue_mutex);
+        m_impl.sig_queue.push(*sig_info);
+    }
+
+private:
+    struct impl
+    {
+        std::mutex handlers_mutex;
+        handlers_map_t handlers;
+
+        std::mutex queue_mutex;
+        std::queue<sig_info_t> sig_queue;
+    };
+
+private:
+    static impl m_impl;
+};
 
 } // namespace signals
 } // namespace wstux
 
-#endif /* _SIGNALS_MANAGER_SIGNALS_TYPES_H */
+#endif /* _SIGNALS_MANAGER_SIGNALS_MANAGER_H */
 
