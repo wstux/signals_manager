@@ -24,4 +24,5 @@ include(${COMMON_MAIN_CMAKE} PUBLIC)
 
 add_subdirectory(externals)
 add_subdirectory(libs/signals)
+add_subdirectory(tests)
 
