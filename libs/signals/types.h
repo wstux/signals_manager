@@ -31,7 +31,6 @@
 namespace wstux {
 namespace signals {
 
-using handler_fn_t = std::function<void()>;
 using sig_num_t = int;
 using sig_info_t = ::siginfo_t;
 using sig_handler_fn_t = std::function<void(sig_num_t, const sig_info_t&)>;

@@ -127,7 +127,7 @@ void manager::remove_handler(sig_num_t sig)
     erase(sig);
 }
 
-bool manager::reset_handler(sig_num_t sig, handler_fn_t func)
+bool manager::reset_handler(sig_num_t sig, std::function<void()> func)
 {
     return reset_handler(sig, [func](sig_num_t, const sig_info_t&) -> void { func(); });
 }
@@ -155,7 +155,7 @@ bool manager::reset_handler(sig_num_t sig, sig_handler_fn_t func)
     return true;
 }
 
-bool manager::set_handler(sig_num_t sig, handler_fn_t func)
+bool manager::set_handler(sig_num_t sig, std::function<void()> func)
 {
     return set_handler(sig, [func](sig_num_t, const sig_info_t&) -> void { func(); });
 }

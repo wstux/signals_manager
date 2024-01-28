@@ -49,11 +49,11 @@ public:
 
     void remove_handler(sig_num_t sig);
 
-    bool reset_handler(sig_num_t sig, handler_fn_t func);
+    bool reset_handler(sig_num_t sig, std::function<void()> func);
 
     bool reset_handler(sig_num_t sig, sig_handler_fn_t func);
 
-    bool set_handler(sig_num_t sig, handler_fn_t func);
+    bool set_handler(sig_num_t sig, std::function<void()> func);
 
     bool set_handler(sig_num_t sig, sig_handler_fn_t func);
 
