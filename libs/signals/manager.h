@@ -27,8 +27,10 @@
 
 #include <atomic>
 #include <chrono>
+#include <memory>
 #include <mutex>
 #include <queue>
+#include <thread>
 #include <unordered_map>
 
 #include "signals/types.h"
@@ -43,10 +45,6 @@ public:
 
     void clear();
 
-    void process_signals();
-
-    void process_signals(const std::chrono::milliseconds& msec, bool exit_after_timeout);
-
     void remove_handler(sig_num_t sig);
 
     bool reset_handler(sig_num_t sig, std::function<void()> func);
@@ -57,7 +55,13 @@ public:
 
     bool set_handler(sig_num_t sig, sig_handler_fn_t func);
 
-    void stop_process_signals() { m_impl.is_stop = true; }
+    void signals_processing();
+
+    void signals_processing(const std::chrono::milliseconds& msec, bool exit_after_timeout);
+
+    void stop_process_signals();
+
+    void threaded_signals_processing(const std::chrono::milliseconds& msec = std::chrono::milliseconds(0));
 
 private:
     using handlers_map_t = std::unordered_map<sig_num_t, sig_handler_fn_t>;
@@ -82,10 +86,15 @@ private:
         return true;
     }
 
+    static void processing();
+
+    static void processing_to(const std::chrono::milliseconds& msec, bool exit_after_timeout);
+
 private:
     struct impl
     {
         std::atomic_bool is_stop = {false};
+        std::unique_ptr<std::thread> p_thread;
     
         std::mutex handlers_mutex;
         handlers_map_t handlers;

@@ -32,6 +32,8 @@ manager::impl manager::m_impl;
 
 void manager::clear()
 {
+    stop_process_signals();
+
     for (const handlers_map_t::value_type& handler : m_impl.handlers) {
         details::unregister_signal_handler(handler.first);
         details::unblock_signal(handler.first);
@@ -56,7 +58,7 @@ void manager::erase(sig_num_t sig)
     details::unblock_signal(sig);
 }
 
-void manager::process_signals()
+void manager::processing()
 {
     std::lock_guard<std::mutex> lock(m_impl.handlers_mutex);
 
@@ -85,7 +87,7 @@ void manager::process_signals()
     }
 }
 
-void manager::process_signals(const std::chrono::milliseconds& msec, bool exit_after_timeout)
+void manager::processing_to(const std::chrono::milliseconds& msec, bool exit_after_timeout)
 {
     std::lock_guard<std::mutex> lock(m_impl.handlers_mutex);
 
@@ -180,6 +182,37 @@ bool manager::set_handler(sig_num_t sig, sig_handler_fn_t func)
         return false;
     }
     return true;
+}
+
+void manager::signals_processing()
+{
+    processing();
+}
+
+void manager::signals_processing(const std::chrono::milliseconds& msec, bool exit_after_timeout)
+{
+    processing_to(msec, exit_after_timeout);
+}
+
+void manager::stop_process_signals()
+{
+    m_impl.is_stop = true;
+    if (m_impl.p_thread) {
+        m_impl.p_thread->join();
+        m_impl.p_thread.reset();
+    }
+}
+
+void manager::threaded_signals_processing(const std::chrono::milliseconds& msec)
+{
+    if (m_impl.p_thread) {
+        return;
+    }
+    if (msec == std::chrono::milliseconds(0)) {
+        m_impl.p_thread.reset(new std::thread(&manager::processing));
+    } else {
+        m_impl.p_thread.reset(new std::thread(&manager::processing_to, std::cref(msec), false));
+    }
 }
 
 } // namespace signals
