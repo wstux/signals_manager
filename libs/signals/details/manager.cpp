@@ -32,7 +32,7 @@ manager::impl manager::m_impl;
 
 void manager::clear()
 {
-    stop_process_signals();
+    stop_processing();
 
     for (const handlers_map_t::value_type& handler : m_impl.handlers) {
         details::unregister_signal_handler(handler.first);
@@ -74,7 +74,7 @@ void manager::processing()
     m_impl.is_stop = false;
     while (! m_impl.is_stop) {
         details::unblock_sigset(set);
-        details::wait_signal(set);
+        wait();
         details::block_sigset(set);
 
         sig_info_t info = {};
@@ -103,7 +103,7 @@ void manager::processing_to(const std::chrono::milliseconds& msec, bool exit_aft
     m_impl.is_stop = false;
     while (! m_impl.is_stop) {
         details::unblock_sigset(set);
-        details::wait_signal(set, msec);
+        wait(msec);
         details::block_sigset(set);
 
         sig_info_t info = {};
@@ -194,9 +194,10 @@ void manager::signals_processing(const std::chrono::milliseconds& msec, bool exi
     processing_to(msec, exit_after_timeout);
 }
 
-void manager::stop_process_signals()
+void manager::stop_processing()
 {
     m_impl.is_stop = true;
+    wake();
     if (m_impl.p_thread) {
         m_impl.p_thread->join();
         m_impl.p_thread.reset();

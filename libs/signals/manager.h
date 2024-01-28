@@ -34,6 +34,7 @@
 #include <unordered_map>
 
 #include "signals/types.h"
+#include "signals/details/semaphore.h"
 
 namespace wstux {
 namespace signals {
@@ -44,6 +45,8 @@ public:
     ~manager() { clear(); }
 
     void clear();
+
+    bool is_stopped() const { return m_impl.is_stop; }
 
     void remove_handler(sig_num_t sig);
 
@@ -57,9 +60,9 @@ public:
 
     void signals_processing();
 
-    void signals_processing(const std::chrono::milliseconds& msec, bool exit_after_timeout);
+    void signals_processing(const std::chrono::milliseconds& msec, bool exit_after_timeout = false);
 
-    void stop_process_signals();
+    void stop_processing();
 
     void threaded_signals_processing(const std::chrono::milliseconds& msec = std::chrono::milliseconds(0));
 
@@ -73,6 +76,9 @@ private:
     {
         std::unique_lock<std::mutex> lock(m_impl.queue_mutex);
         m_impl.sig_queue.push(*sig_info);
+        lock.unlock();
+
+        wake();
     }
 
     static bool pop_signal(sig_info_t& sig_info)
@@ -90,10 +96,17 @@ private:
 
     static void processing_to(const std::chrono::milliseconds& msec, bool exit_after_timeout);
 
+    static void wait() { m_impl.sem.wait(); }
+
+    static void wait(const std::chrono::milliseconds& ms) { m_impl.sem.timed_wait(ms); }
+
+    static void wake() { m_impl.sem.post(); }
+
 private:
     struct impl
     {
         std::atomic_bool is_stop = {false};
+        details::semaphore sem;
         std::unique_ptr<std::thread> p_thread;
     
         std::mutex handlers_mutex;

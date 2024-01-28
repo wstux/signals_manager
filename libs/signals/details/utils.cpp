@@ -99,26 +99,6 @@ bool unregister_signal_handler(sig_num_t sig)
     return (::sigaction(sig, &sa, 0) == 0);
 }
 
-bool wait_signal(const sig_set_t& set)
-{
-    //sig_set_t set;
-    //::sigemptyset(&set);
-    sig_num_t sig;
-    int rc = sigwait(&set, &sig);
-    return (rc == 0);
-}
-
-bool wait_signal(const sig_set_t& set, const std::chrono::milliseconds& msec)
-{
-    //sig_set_t set;
-    //::sigemptyset(&set);
-    const long ms = msec.count();
-    const ::timespec ts{ms / 1000, (ms % 1000) * 1000000};
-
-    int rc = ::sigtimedwait(&set, NULL, &ts);
-    return (rc == 0);
-}
-
 } // namespace details
 } // namespace signals
 } // namespace wstux

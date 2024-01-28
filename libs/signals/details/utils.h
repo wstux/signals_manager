@@ -51,10 +51,6 @@ bool unblock_sigset(const sig_set_t& set);
 
 bool unregister_signal_handler(sig_num_t sig);
 
-bool wait_signal(const sig_set_t& set);
-
-bool wait_signal(const sig_set_t& set, const std::chrono::milliseconds& msec);
-
 } // namespace details
 } // namespace signals
 } // namespace wstux
