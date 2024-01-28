@@ -25,6 +25,8 @@
 #ifndef _SIGNALS_MANAGER_SIGNALS_MANAGER_H
 #define _SIGNALS_MANAGER_SIGNALS_MANAGER_H
 
+#include <atomic>
+#include <chrono>
 #include <mutex>
 #include <queue>
 #include <unordered_map>
@@ -43,6 +45,8 @@ public:
 
     void process_signals();
 
+    void process_signals(const std::chrono::milliseconds& msec, bool exit_after_timeout);
+
     void remove_handler(sig_num_t sig);
 
     bool reset_handler(sig_num_t sig, handler_fn_t func);
@@ -53,7 +57,7 @@ public:
 
     bool set_handler(sig_num_t sig, sig_handler_fn_t func);
 
-    void stop_process_signals();
+    void stop_process_signals() { m_impl.is_stop = true; }
 
 private:
     using handlers_map_t = std::unordered_map<sig_num_t, sig_handler_fn_t>;
@@ -67,9 +71,22 @@ private:
         m_impl.sig_queue.push(*sig_info);
     }
 
+    static bool pop_signal(sig_info_t& sig_info)
+    {
+        std::unique_lock<std::mutex> lock(m_impl.queue_mutex);
+        if (m_impl.sig_queue.empty()) {
+            return false;
+        }
+        sig_info = m_impl.sig_queue.front();
+        m_impl.sig_queue.pop();
+        return true;
+    }
+
 private:
     struct impl
     {
+        std::atomic_bool is_stop = {false};
+    
         std::mutex handlers_mutex;
         handlers_map_t handlers;
 

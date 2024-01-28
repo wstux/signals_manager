@@ -58,6 +58,64 @@ void manager::erase(sig_num_t sig)
 
 void manager::process_signals()
 {
+    std::lock_guard<std::mutex> lock(m_impl.handlers_mutex);
+
+    details::sig_set_t set;
+    ::sigemptyset(&set);
+
+    for (const handlers_map_t::value_type& handler : m_impl.handlers) {
+        if (::sigaddset(&set, handler.first) != 0) {
+            return;
+        }
+    }
+
+    m_impl.is_stop = false;
+    while (! m_impl.is_stop) {
+        details::unblock_sigset(set);
+        details::wait_signal(set);
+        details::block_sigset(set);
+
+        sig_info_t info = {};
+        while (pop_signal(info)) {
+            const handlers_map_t::const_iterator it = m_impl.handlers.find(info.si_signo);
+            if (it != m_impl.handlers.cend()) {
+                it->second(info.si_signo, info);
+            }
+        }
+    }
+}
+
+void manager::process_signals(const std::chrono::milliseconds& msec, bool exit_after_timeout)
+{
+    std::lock_guard<std::mutex> lock(m_impl.handlers_mutex);
+
+    details::sig_set_t set;
+    ::sigemptyset(&set);
+
+    for (const handlers_map_t::value_type& handler : m_impl.handlers) {
+        if (::sigaddset(&set, handler.first) != 0) {
+            return;
+        }
+    }
+
+    m_impl.is_stop = false;
+    while (! m_impl.is_stop) {
+        details::unblock_sigset(set);
+        details::wait_signal(set, msec);
+        details::block_sigset(set);
+
+        sig_info_t info = {};
+        while (pop_signal(info)) {
+            const handlers_map_t::const_iterator it = m_impl.handlers.find(info.si_signo);
+            if (it != m_impl.handlers.cend()) {
+                it->second(info.si_signo, info);
+            }
+        }
+
+        if (exit_after_timeout) {
+            break;
+        }
+    }
 }
 
 void manager::remove_handler(sig_num_t sig)
@@ -123,9 +181,6 @@ bool manager::set_handler(sig_num_t sig, sig_handler_fn_t func)
     }
     return true;
 }
-
-void manager::stop_process_signals()
-{}
 
 } // namespace signals
 } // namespace wstux
