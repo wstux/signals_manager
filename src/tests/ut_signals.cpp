@@ -74,7 +74,7 @@ TEST(signals, threaded_signals_processing)
     std::atomic_bool has_signal = {false};
     std::mutex m;
     m.lock();
-    EXPECT_TRUE(sm.set_handler(SIGUSR1, [&has_signal, &m]() -> void { 
+    EXPECT_TRUE(sm.set_handler(SIGUSR1, [&has_signal, &m]() -> void {
         has_signal = true;
         m.unlock();
     }));

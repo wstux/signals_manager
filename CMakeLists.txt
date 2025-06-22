@@ -50,8 +50,5 @@ if (USE_BOOST_LOCKFREE)
 endif()
 
 add_subdirectory(externals)
-add_subdirectory(libs/signals)
-if (BUILD_TESTS)
-    add_subdirectory(tests)
-endif()
+add_subdirectory(src)
 

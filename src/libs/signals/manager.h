@@ -108,7 +108,7 @@ private:
         std::atomic_bool is_stop = {false};
         details::semaphore sem;
         std::unique_ptr<std::thread> p_thread;
-    
+
         std::mutex handlers_mutex;
         handlers_map_t handlers;
 
