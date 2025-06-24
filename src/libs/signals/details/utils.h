@@ -22,68 +22,38 @@
  * THE SOFTWARE.
  */
 
-#ifndef _TESTING_TIMER_H
-#define _TESTING_TIMER_H
+#ifndef _LIBS_SIGNALS_UTILS_H_
+#define _LIBS_SIGNALS_UTILS_H_
 
-#include <chrono>
+#include <csignal>
+//#include <chrono>
 
-namespace testing {
+#include "signals/types.h"
+
+namespace wstux {
+namespace signals {
 namespace details {
 
-class timer final
-{
-    using time_point = std::chrono::time_point<std::chrono::high_resolution_clock>;
+using sig_action_fn_t = void (*)(sig_num_t, sig_info_t*, void*);
+using sig_set_t = ::sigset_t;
 
-public:
-    timer(bool run = false)
-    {
-        if (run) {
-            start();
-        }
-    }
+bool block_signal(sig_num_t num);
 
-    void pause()
-    {
-        m_time_ms = value_ms();
-        is_start = false;
-    }
+bool block_sigset(const sig_set_t& set);
 
-    void restart()
-    {
-        stop();
-        start();
-    }
+bool is_safe_signal(sig_num_t sig);
 
-    void start()
-    {
-        is_start = true;
-        m_start = std::chrono::high_resolution_clock::now();
-    }
+bool register_signal_handler(sig_num_t sig, sig_action_fn_t on_signal_fn);
 
-    void stop()
-    {
-        is_start = false;
-        m_time_ms = 0.0;
-    }
+bool unblock_signal(sig_num_t sig);
 
-    double value_ms()
-    {
-        if (is_start) {
-            time_point cur = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::milli> ms_double = cur - m_start;
-            m_time_ms += ms_double.count();
-        }
-        return m_time_ms;
-    }
+bool unblock_sigset(const sig_set_t& set);
 
-private:
-    bool is_start = false;
-    time_point m_start;
-    double m_time_ms = 0.0;
-};
+bool unregister_signal_handler(sig_num_t sig);
 
 } // namespace details
-} // namespace testing
+} // namespace signals
+} // namespace wstux
 
-#endif /* _TESTING_TIMER_H */
+#endif /* _LIBS_SIGNALS_UTILS_H_ */
 

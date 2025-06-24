@@ -28,59 +28,64 @@
 namespace wstux {
 namespace signals {
 
-manager::impl manager::m_impl;
+std::atomic_bool manager::m_is_stop = {false};
+details::semaphore manager::m_sem;
+std::unique_ptr<std::thread> manager::m_p_thread;
+std::mutex manager::m_handlers_mutex;
+manager::handlers_map_t manager::m_handlers;
+manager::signals_queue_t manager::m_sig_queue;
 
 void manager::clear()
 {
     stop_processing();
 
-    for (const handlers_map_t::value_type& handler : m_impl.handlers) {
+    for (const handlers_map_t::value_type& handler : m_handlers) {
         details::unregister_signal_handler(handler.first);
         details::unblock_signal(handler.first);
     }
 
-    m_impl.handlers.clear();
-
-    while (! m_impl.sig_queue.empty()) {
-        m_impl.sig_queue.pop();
+    m_handlers.clear();
+    while (! m_sig_queue.empty()) {
+        sig_info_t sig_info;
+        m_sig_queue.pop(sig_info);
     }
 }
 
 void manager::erase(sig_num_t sig)
 {
-    handlers_map_t::iterator it = m_impl.handlers.find(sig);
-    if (it == m_impl.handlers.cend()) {
+    handlers_map_t::iterator it = m_handlers.find(sig);
+    if (it == m_handlers.cend()) {
         return;
     }
 
-    m_impl.handlers.erase(it);
+    m_handlers.erase(it);
     details::unregister_signal_handler(sig);
     details::unblock_signal(sig);
 }
 
 void manager::processing()
 {
-    std::lock_guard<std::mutex> lock(m_impl.handlers_mutex);
+    std::lock_guard<std::mutex> lock(m_handlers_mutex);
 
     details::sig_set_t set;
     ::sigemptyset(&set);
 
-    for (const handlers_map_t::value_type& handler : m_impl.handlers) {
+    for (const handlers_map_t::value_type& handler : m_handlers) {
         if (::sigaddset(&set, handler.first) != 0) {
             return;
         }
     }
 
-    m_impl.is_stop = false;
-    while (! m_impl.is_stop) {
+    m_is_stop = false;
+    while (! m_is_stop) {
         details::unblock_sigset(set);
         wait();
         details::block_sigset(set);
 
         sig_info_t info = {};
         while (pop_signal(info)) {
-            const handlers_map_t::const_iterator it = m_impl.handlers.find(info.si_signo);
-            if (it != m_impl.handlers.cend()) {
+            const handlers_map_t::const_iterator it = m_handlers.find(info.si_signo);
+            if (it != m_handlers.cend()) {
                 it->second(info.si_signo, info);
             }
         }
@@ -89,27 +94,27 @@ void manager::processing()
 
 void manager::processing_to(const std::chrono::milliseconds& msec, bool exit_after_timeout)
 {
-    std::lock_guard<std::mutex> lock(m_impl.handlers_mutex);
+    std::lock_guard<std::mutex> lock(m_handlers_mutex);
 
     details::sig_set_t set;
     ::sigemptyset(&set);
 
-    for (const handlers_map_t::value_type& handler : m_impl.handlers) {
+    for (const handlers_map_t::value_type& handler : m_handlers) {
         if (::sigaddset(&set, handler.first) != 0) {
             return;
         }
     }
 
-    m_impl.is_stop = false;
-    while (! m_impl.is_stop) {
+    m_is_stop = false;
+    while (! m_is_stop) {
         details::unblock_sigset(set);
         wait(msec);
         details::block_sigset(set);
 
         sig_info_t info = {};
         while (pop_signal(info)) {
-            const handlers_map_t::const_iterator it = m_impl.handlers.find(info.si_signo);
-            if (it != m_impl.handlers.cend()) {
+            const handlers_map_t::const_iterator it = m_handlers.find(info.si_signo);
+            if (it != m_handlers.cend()) {
                 it->second(info.si_signo, info);
             }
         }
@@ -122,7 +127,7 @@ void manager::processing_to(const std::chrono::milliseconds& msec, bool exit_aft
 
 void manager::remove_handler(sig_num_t sig)
 {
-    std::unique_lock<std::mutex> lock(m_impl.handlers_mutex, std::defer_lock);
+    std::unique_lock<std::mutex> lock(m_handlers_mutex, std::defer_lock);
     if (! lock.try_lock()) {
         return;
     }
@@ -136,12 +141,12 @@ bool manager::reset_handler(sig_num_t sig, std::function<void()> func)
 
 bool manager::reset_handler(sig_num_t sig, sig_handler_fn_t func)
 {
-    std::unique_lock<std::mutex> lock(m_impl.handlers_mutex, std::defer_lock);
+    std::unique_lock<std::mutex> lock(m_handlers_mutex, std::defer_lock);
     if (! lock.try_lock()) {
         return false;
     }
 
-    std::pair<handlers_map_t::iterator, bool> rc = m_impl.handlers.emplace(sig, func);
+    std::pair<handlers_map_t::iterator, bool> rc = m_handlers.emplace(sig, func);
     if (! rc.second) {
         rc.first->second = func;
         return true;
@@ -164,12 +169,12 @@ bool manager::set_handler(sig_num_t sig, std::function<void()> func)
 
 bool manager::set_handler(sig_num_t sig, sig_handler_fn_t func)
 {
-    std::unique_lock<std::mutex> lock(m_impl.handlers_mutex, std::defer_lock);
+    std::unique_lock<std::mutex> lock(m_handlers_mutex, std::defer_lock);
     if (! lock.try_lock()) {
         return false;
     }
 
-    std::pair<handlers_map_t::iterator, bool> rc = m_impl.handlers.emplace(sig, func);
+    std::pair<handlers_map_t::iterator, bool> rc = m_handlers.emplace(sig, func);
     if (! rc.second) {
         return false;
     }
@@ -196,23 +201,23 @@ void manager::signals_processing(const std::chrono::milliseconds& msec, bool exi
 
 void manager::stop_processing()
 {
-    m_impl.is_stop = true;
+    m_is_stop = true;
     wake();
-    if (m_impl.p_thread) {
-        m_impl.p_thread->join();
-        m_impl.p_thread.reset();
+    if (m_p_thread) {
+        m_p_thread->join();
+        m_p_thread.reset();
     }
 }
 
 void manager::threaded_signals_processing(const std::chrono::milliseconds& msec)
 {
-    if (m_impl.p_thread) {
+    if (m_p_thread) {
         return;
     }
     if (msec == std::chrono::milliseconds(0)) {
-        m_impl.p_thread.reset(new std::thread(&manager::processing));
+        m_p_thread.reset(new std::thread(&manager::processing));
     } else {
-        m_impl.p_thread.reset(new std::thread(&manager::processing_to, std::cref(msec), false));
+        m_p_thread.reset(new std::thread(&manager::processing_to, std::cref(msec), false));
     }
 }
 

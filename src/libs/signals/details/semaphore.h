@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SIGNALS_MANAGER_SIGNALS_SEMAPHORE_H
-#define _SIGNALS_MANAGER_SIGNALS_SEMAPHORE_H
+#ifndef _LIBS_SIGNALS_SEMAPHORE_H_
+#define _LIBS_SIGNALS_SEMAPHORE_H_
 
 #ifdef __linux__
     #include <semaphore.h>
@@ -50,7 +50,7 @@ public:
     }
 
     /// \brief  Destroys the semaphore.
-    ~semaphore() 
+    ~semaphore()
     {
 #ifdef __linux__
         ::sem_destroy(&m_sem);
@@ -58,7 +58,7 @@ public:
     }
 
     /// \brief  Increments the semaphore count. If there are processes/threads
-    ///         blocked waiting for the semaphore, then one of these processes 
+    ///         blocked waiting for the semaphore, then one of these processes
     ///         will return successfully from its wait function.
     inline void post()
     {
@@ -73,7 +73,7 @@ public:
     /// \param  msec - the timeout value.
     /// \return If the timeout expires or there is an error, the function returns
     ///         false. If the semaphore is posted the function returns true.
-    inline bool timed_wait(const std::chrono::milliseconds& msec) 
+    inline bool timed_wait(const std::chrono::milliseconds& msec)
     {
 #ifdef __linux__
         const long ms = msec.count();
@@ -89,7 +89,7 @@ public:
         return false;
     }
 
-    /// \brief  Decrements the semaphore. If the semaphore value is not greater 
+    /// \brief  Decrements the semaphore. If the semaphore value is not greater
     ///         than zero, then the calling process/thread blocks until it can
     ///         decrement the counter.
     inline void wait()
@@ -116,5 +116,5 @@ private:
 } // namespace signals
 } // namespace wstux
 
-#endif /* _SIGNALS_MANAGER_SIGNALS_SEMAPHORE_H */
+#endif /* _LIBS_SIGNALS_SEMAPHORE_H_ */
 

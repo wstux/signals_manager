@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2023 Chistyakov Alexander.
+ * Copyright 2024 Chistyakov Alexander.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,38 +22,26 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SIGNALS_MANAGER_SIGNALS_UTILS_H
-#define _SIGNALS_MANAGER_SIGNALS_UTILS_H
+#ifndef _LIBS_SIGNALS_TYPES_H_
+#define _LIBS_SIGNALS_TYPES_H_
 
 #include <csignal>
-#include <chrono>
-
-#include "signals/types.h"
+#include <functional>
 
 namespace wstux {
 namespace signals {
-namespace details {
 
-using sig_action_fn_t = void (*)(sig_num_t, sig_info_t*, void*);
-using sig_set_t = ::sigset_t;
+/// \brief  Signal number.
+using sig_num_t = int;
 
-bool block_signal(sig_num_t num);
+/// \brief  Data structure containing signal information.
+using sig_info_t = ::siginfo_t;
 
-bool block_sigset(const sig_set_t& set);
+/// \brief  Signal handler signature.
+using sig_handler_fn_t = std::function<void(sig_num_t, const sig_info_t&)>;
 
-bool is_safe_signal(sig_num_t sig);
-
-bool register_signal_handler(sig_num_t sig, sig_action_fn_t on_signal_fn);
-
-bool unblock_signal(sig_num_t sig);
-
-bool unblock_sigset(const sig_set_t& set);
-
-bool unregister_signal_handler(sig_num_t sig);
-
-} // namespace details
 } // namespace signals
 } // namespace wstux
 
-#endif /* _SIGNALS_MANAGER_SIGNALS_UTILS_H */
+#endif /* _LIBS_SIGNALS_TYPES_H_ */
 
