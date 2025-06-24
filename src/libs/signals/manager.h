@@ -22,18 +22,18 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SIGNALS_MANAGER_SIGNALS_MANAGER_H
-#define _SIGNALS_MANAGER_SIGNALS_MANAGER_H
+#ifndef _LIBS_SIGNALS_MANAGER_H_
+#define _LIBS_SIGNALS_MANAGER_H_
 
 #include <atomic>
 #include <chrono>
 #include <memory>
 #include <mutex>
-#include <queue>
 #include <thread>
 #include <unordered_map>
 
 #include "signals/types.h"
+#include "signals/details/queue.h"
 #include "signals/details/semaphore.h"
 
 namespace wstux {
@@ -46,7 +46,7 @@ public:
 
     void clear();
 
-    bool is_stopped() const { return m_impl.is_stop; }
+    bool is_stopped() const { return m_is_stop; }
 
     void remove_handler(sig_num_t sig);
 
@@ -68,27 +68,23 @@ public:
 
 private:
     using handlers_map_t = std::unordered_map<sig_num_t, sig_handler_fn_t>;
+    using signals_queue_t = details::signals_queue_t<sig_info_t, 31>;
 
 private:
     void erase(sig_num_t sig);
 
     static void on_signal_fn(sig_num_t /*sig_num*/, sig_info_t* sig_info, void*)
     {
-        std::unique_lock<std::mutex> lock(m_impl.queue_mutex);
-        m_impl.sig_queue.push(*sig_info);
-        lock.unlock();
-
+        m_sig_queue.push(*sig_info);
         wake();
     }
 
     static bool pop_signal(sig_info_t& sig_info)
     {
-        std::unique_lock<std::mutex> lock(m_impl.queue_mutex);
-        if (m_impl.sig_queue.empty()) {
+        if (m_sig_queue.empty()) {
             return false;
         }
-        sig_info = m_impl.sig_queue.front();
-        m_impl.sig_queue.pop();
+        m_sig_queue.pop(sig_info);
         return true;
     }
 
@@ -96,32 +92,25 @@ private:
 
     static void processing_to(const std::chrono::milliseconds& msec, bool exit_after_timeout);
 
-    static void wait() { m_impl.sem.wait(); }
+    static void wait() { m_sem.wait(); }
 
-    static void wait(const std::chrono::milliseconds& ms) { m_impl.sem.timed_wait(ms); }
+    static void wait(const std::chrono::milliseconds& ms) { m_sem.timed_wait(ms); }
 
-    static void wake() { m_impl.sem.post(); }
-
-private:
-    struct impl
-    {
-        std::atomic_bool is_stop = {false};
-        details::semaphore sem;
-        std::unique_ptr<std::thread> p_thread;
-
-        std::mutex handlers_mutex;
-        handlers_map_t handlers;
-
-        std::mutex queue_mutex;
-        std::queue<sig_info_t> sig_queue;
-    };
+    static void wake() { m_sem.post(); }
 
 private:
-    static impl m_impl;
+    static std::atomic_bool m_is_stop;
+    static details::semaphore m_sem;
+    static std::unique_ptr<std::thread> m_p_thread;
+
+    static std::mutex m_handlers_mutex;
+    static handlers_map_t m_handlers;
+
+    static signals_queue_t m_sig_queue;
 };
 
 } // namespace signals
 } // namespace wstux
 
-#endif /* _SIGNALS_MANAGER_SIGNALS_MANAGER_H */
+#endif /* _LIBS_SIGNALS_MANAGER_H_ */
 

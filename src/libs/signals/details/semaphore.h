@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SIGNALS_MANAGER_SIGNALS_SEMAPHORE_H
-#define _SIGNALS_MANAGER_SIGNALS_SEMAPHORE_H
+#ifndef _LIBS_SIGNALS_SEMAPHORE_H_
+#define _LIBS_SIGNALS_SEMAPHORE_H_
 
 #ifdef __linux__
     #include <semaphore.h>
@@ -116,5 +116,5 @@ private:
 } // namespace signals
 } // namespace wstux
 
-#endif /* _SIGNALS_MANAGER_SIGNALS_SEMAPHORE_H */
+#endif /* _LIBS_SIGNALS_SEMAPHORE_H_ */
 

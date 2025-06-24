@@ -22,11 +22,11 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SIGNALS_MANAGER_SIGNALS_UTILS_H
-#define _SIGNALS_MANAGER_SIGNALS_UTILS_H
+#ifndef _LIBS_SIGNALS_UTILS_H_
+#define _LIBS_SIGNALS_UTILS_H_
 
 #include <csignal>
-#include <chrono>
+//#include <chrono>
 
 #include "signals/types.h"
 
@@ -55,5 +55,5 @@ bool unregister_signal_handler(sig_num_t sig);
 } // namespace signals
 } // namespace wstux
 
-#endif /* _SIGNALS_MANAGER_SIGNALS_UTILS_H */
+#endif /* _LIBS_SIGNALS_UTILS_H_ */
 

@@ -22,8 +22,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef _SIGNALS_MANAGER_SIGNALS_TYPES_H
-#define _SIGNALS_MANAGER_SIGNALS_TYPES_H
+#ifndef _LIBS_SIGNALS_TYPES_H_
+#define _LIBS_SIGNALS_TYPES_H_
 
 #include <csignal>
 #include <functional>
@@ -38,5 +38,5 @@ using sig_handler_fn_t = std::function<void(sig_num_t, const sig_info_t&)>;
 } // namespace signals
 } // namespace wstux
 
-#endif /* _SIGNALS_MANAGER_SIGNALS_TYPES_H */
+#endif /* _LIBS_SIGNALS_TYPES_H_ */
 
