@@ -31,8 +31,13 @@
 namespace wstux {
 namespace signals {
 
+/// \brief  Signal number.
 using sig_num_t = int;
+
+/// \brief  Data structure containing signal information.
 using sig_info_t = ::siginfo_t;
+
+/// \brief  Signal handler signature.
 using sig_handler_fn_t = std::function<void(sig_num_t, const sig_info_t&)>;
 
 } // namespace signals
