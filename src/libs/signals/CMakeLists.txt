@@ -2,6 +2,9 @@ LibTarget(signals STATIC
     SOURCES
         details/manager.cpp
         details/utils.cpp
-    INCLUDE_DIR libs
+    COMPILE_DEFINITIONS
+        ${SIGNALS_MANAGER_USE_BOOST_LOCKFREE}
+    DEPENDS
+        ${boost}
 )
 

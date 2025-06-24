@@ -25,7 +25,7 @@
 ################################################################################
 
 function(_get_qualifier TARGET_NAME RESULT)
-    set(${RESULT} PRIVATE PARENT_SCOPE)
+    set(${RESULT} PUBLIC PARENT_SCOPE)
     get_target_property(_type ${TARGET_NAME} TYPE)
     if (_type STREQUAL "INTERFACE_LIBRARY")
         set(${RESULT} INTERFACE PARENT_SCOPE)
