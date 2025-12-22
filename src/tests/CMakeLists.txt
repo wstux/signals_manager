@@ -8,4 +8,3 @@ TestTarget(ut_signals
     DEPENDS
         testing
 )
-
