@@ -25,19 +25,12 @@
 #ifndef _LIBS_SIGNALS_QUEUE_H_
 #define _LIBS_SIGNALS_QUEUE_H_
 
-#if defined(SIGNALS_MANAGER_USE_BOOST_LOCKFREE)
-    #include <boost/lockfree/queue.hpp>
-    #include <boost/lockfree/policies.hpp>
-#else
-    #include <mutex>
-    #include <queue>
-#endif
+#include <mutex>
+#include <queue>
 
 namespace wstux {
 namespace signals {
 namespace details {
-
-#if ! defined(SIGNALS_MANAGER_USE_BOOST_LOCKFREE)
 
 template<typename T, std::size_t N>
 class queue final
@@ -69,13 +62,6 @@ private:
 
 template<typename T, std::size_t N>
 using signals_queue_t = ::wstux::signals::details::queue<T, N>;
-
-#else
-
-template<typename T, std::size_t N>
-using signals_queue_t = boost::lockfree::queue<T, boost::lockfree::fixed_sized<true>, boost::lockfree::capacity<N>>;
-
-#endif
 
 } // namespace details
 } // namespace signals
