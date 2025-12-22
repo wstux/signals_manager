@@ -2,8 +2,8 @@
 
 ## Description
 
-The signal manager allows you to install custom signal handlers. Signal
-processing is performed in a separate thread.
+The signal manager allows to install custom signal handlers. Signal processing
+is performed in a separate thread.
 
 The manager accepts as input the numbers of signals that will be intercepted and
 processed, and their handlers. These handlers are registered inside the manager,
