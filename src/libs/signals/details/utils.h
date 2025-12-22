@@ -26,7 +26,6 @@
 #define _LIBS_SIGNALS_UTILS_H_
 
 #include <csignal>
-//#include <chrono>
 
 #include "signals/types.h"
 

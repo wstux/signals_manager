@@ -42,7 +42,7 @@ namespace signals {
 /**
  *  \brief  Signal manager.
  *
- *  The signal manager allows you to install custom signal handlers. Signal
+ *  The signal manager allows to install custom signal handlers. Signal
  *  processing is performed in a separate thread.
  *
  *  The manager accepts as input the numbers of signals that will be intercepted
@@ -90,6 +90,8 @@ public:
 
     bool is_stopped() const { return m_is_stop; }
 
+    void process_signals(const std::chrono::milliseconds& msec);
+
     /// \brief  Remove the handler for the specified signal.
     /// \param  sig - signal number.
     void remove_handler(sig_num_t sig);
@@ -124,13 +126,15 @@ public:
     ///     process has started.
     bool set_handler(sig_num_t sig, sig_handler_fn_t func);
 
-    void signals_processing();
+    void start();
 
-    void signals_processing(const std::chrono::milliseconds& msec, bool exit_after_timeout = false);
+    void start(const std::chrono::milliseconds& msec, bool exit_after_timeout = false);
 
-    void stop_processing();
+    void stop();
 
-    void threaded_signals_processing(const std::chrono::milliseconds& msec = std::chrono::milliseconds(0));
+    void threaded_start(const std::chrono::milliseconds& msec = std::chrono::milliseconds(0));
+
+    static bool is_safe_signal(sig_num_t sig);
 
 private:
     using handlers_map_t = std::unordered_map<sig_num_t, sig_handler_fn_t>;
