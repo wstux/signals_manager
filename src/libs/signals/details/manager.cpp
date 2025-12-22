@@ -28,7 +28,7 @@
 namespace wstux {
 namespace signals {
 
-std::atomic_bool manager::m_is_stop = {false};
+std::atomic_bool manager::m_is_stop = {true};
 details::semaphore manager::m_sem;
 std::unique_ptr<std::thread> manager::m_p_thread;
 std::mutex manager::m_handlers_mutex;
@@ -37,7 +37,7 @@ manager::signals_queue_t manager::m_sig_queue;
 
 void manager::clear()
 {
-    stop_processing();
+    stop();
 
     for (const handlers_map_t::value_type& handler : m_handlers) {
         details::unregister_signal_handler(handler.first);
@@ -63,6 +63,19 @@ void manager::erase(sig_num_t sig)
     details::unblock_signal(sig);
 }
 
+bool manager::is_safe_signal(sig_num_t sig)
+{
+    return details::is_safe_signal(sig);
+}
+
+void manager::process_signals(const std::chrono::milliseconds& msec)
+{
+    if (is_stopped()) {
+        return;
+    }
+    processing_to(msec, true);
+}
+
 void manager::processing()
 {
     std::lock_guard<std::mutex> lock(m_handlers_mutex);
@@ -76,7 +89,6 @@ void manager::processing()
         }
     }
 
-    m_is_stop = false;
     while (! m_is_stop) {
         details::unblock_sigset(set);
         wait();
@@ -105,7 +117,6 @@ void manager::processing_to(const std::chrono::milliseconds& msec, bool exit_aft
         }
     }
 
-    m_is_stop = false;
     while (! m_is_stop) {
         details::unblock_sigset(set);
         wait(msec);
@@ -189,17 +200,25 @@ bool manager::set_handler(sig_num_t sig, sig_handler_fn_t func)
     return true;
 }
 
-void manager::signals_processing()
+void manager::start()
 {
+    if (! is_stopped()) {
+        return;
+    }
+    m_is_stop = false;
     processing();
 }
 
-void manager::signals_processing(const std::chrono::milliseconds& msec, bool exit_after_timeout)
+void manager::start(const std::chrono::milliseconds& msec, bool exit_after_timeout)
 {
+    if (! is_stopped()) {
+        return;
+    }
+    m_is_stop = false;
     processing_to(msec, exit_after_timeout);
 }
 
-void manager::stop_processing()
+void manager::stop()
 {
     m_is_stop = true;
     wake();
@@ -209,11 +228,17 @@ void manager::stop_processing()
     }
 }
 
-void manager::threaded_signals_processing(const std::chrono::milliseconds& msec)
+void manager::threaded_start(const std::chrono::milliseconds& msec)
 {
+    if (! is_stopped()) {
+        return;
+    }
+
     if (m_p_thread) {
         return;
     }
+
+    m_is_stop = false;
     if (msec == std::chrono::milliseconds(0)) {
         m_p_thread.reset(new std::thread(&manager::processing));
     } else {
